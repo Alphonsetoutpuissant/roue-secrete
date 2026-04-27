@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Roue Secrète</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 40px; background:#111; color:white; }
+    input { padding:10px; width:250px; }
+    button { padding:10px; margin:10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<h1>🎯 Roue Secrète</h1>
+
+<input id="q" placeholder="Ajoute une question...">
+<br>
+<button onclick="send()">Envoyer anonymement</button>
+
+<br><br>
+
+<button onclick="random()">🎲 Tirer au hasard</button>
+
+<h2 id="result"></h2>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+const supabaseClient = supabase.createClient(
+  "https://kdajcpukpuugzzysoejf.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkYWpjcHVrcHV1Z3p6eXNvZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzUyMDEsImV4cCI6MjA5MjgxMTIwMX0.Yxyf3fQxlUi2epMO7y4RDVLIWhepdM9bxnSO2mjdDWg"
+);
+
+async function send(){
+  const q = document.getElementById("q").value;
+  if(!q) return alert("Ecris quelque chose !");
+  
+  await supabaseClient.from("questions").insert([{ content: q }]);
+  
+  document.getElementById("q").value = "";
+  alert("Ajouté !");
+}
+
+async function random(){
+  let { data } = await supabaseClient.from("questions").select("*");
+  
+  if(!data || data.length === 0){
+    document.getElementById("result").innerText = "Aucune question pour l'instant 😢";
+    return;
+  }
+  
+  const r = data[Math.floor(Math.random()*data.length)];
+  document.getElementById("result").innerText = r.content;
+}
+</script>
+
+</body>
+</html>
