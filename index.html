@@ -3,53 +3,143 @@
 <head>
   <title>Roue Secrète</title>
   <style>
-    body { font-family: Arial; text-align: center; padding: 40px; background:#111; color:white; }
-    input { padding:10px; width:250px; }
-    button { padding:10px; margin:10px; cursor:pointer; }
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 30px;
+    }
+
+    input { padding: 10px; width: 250px; }
+    button { padding: 10px; margin: 5px; cursor: pointer; }
+
+    /* MENU DROITE */
+    #menu {
+      position: fixed;
+      right: 10px;
+      top: 10px;
+      width: 200px;
+      background: #222;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .question {
+      background: #333;
+      padding: 5px;
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete {
+      color: red;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #spoiler {
+      cursor: pointer;
+      background: #444;
+      padding: 5px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
   </style>
 </head>
+
 <body>
 
 <h1>🎯 Roue Secrète</h1>
 
 <input id="q" placeholder="Ajoute une question...">
 <br>
-<button onclick="send()">Envoyer anonymement</button>
-
-<br><br>
-
-<button onclick="random()">🎲 Tirer au hasard</button>
+<button onclick="send()">Envoyer</button>
+<button onclick="random()">🎲 Random</button>
 
 <h2 id="result"></h2>
 
+<!-- MENU DROITE -->
+<div id="menu">
+  <div id="spoiler" onclick="toggleSpoil()">SPOIL ?!</div>
+  <div id="content"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
 const supabaseClient = supabase.createClient(
   "https://kdajcpukpuugzzysoejf.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkYWpjcHVrcHV1Z3p6eXNvZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzUyMDEsImV4cCI6MjA5MjgxMTIwMX0.Yxyf3fQxlUi2epMO7y4RDVLIWhepdM9bxnSO2mjdDWg"
+  "TON_ANON_KEY"
 );
+
+let mode = 0; // 0 = spoil, 1 = last, 2 = all
 
 async function send(){
   const q = document.getElementById("q").value;
-  if(!q) return alert("Ecris quelque chose !");
-  
+  if(!q) return;
+
   await supabaseClient.from("questions").insert([{ content: q }]);
-  
   document.getElementById("q").value = "";
-  alert("Ajouté !");
+
+  loadMenu();
 }
 
 async function random(){
   let { data } = await supabaseClient.from("questions").select("*");
-  
-  if(!data || data.length === 0){
-    document.getElementById("result").innerText = "Aucune question pour l'instant 😢";
-    return;
-  }
-  
   const r = data[Math.floor(Math.random()*data.length)];
   document.getElementById("result").innerText = r.content;
 }
+
+function toggleSpoil(){
+  mode++;
+  if(mode > 2) mode = 0;
+  loadMenu();
+}
+
+async function deleteQuestion(id){
+  await supabaseClient.from("questions").delete().eq("id", id);
+  loadMenu();
+}
+
+async function loadMenu(){
+  let { data } = await supabaseClient
+    .from("questions")
+    .select("*")
+    .order("id", { ascending: true });
+
+  let html = "";
+
+  if(mode === 0){
+    html = "<p style='text-align:center'>🔒 caché</p>";
+  }
+
+  if(mode === 1){
+    const last = data[data.length - 1];
+    if(last){
+      html = `<div class="question">
+        ${last.content}
+        <span class="delete" onclick="deleteQuestion(${last.id})">❌</span>
+      </div>`;
+    }
+  }
+
+  if(mode === 2){
+    data.forEach(q => {
+      html += `<div class="question">
+        ${q.content}
+        <span class="delete" onclick="deleteQuestion(${q.id})">❌</span>
+      </div>`;
+    });
+  }
+
+  document.getElementById("content").innerHTML = html;
+}
+
+loadMenu();
 </script>
 
 </body>
