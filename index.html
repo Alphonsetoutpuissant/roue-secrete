@@ -85,17 +85,20 @@
   <div class="debug" id="debug"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-const supabaseClient = window.supabase.createClient(
+
+// ⚠️ ATTEND chargement correct du SDK
+const supabaseClient = supabase.createClient(
   "https://kdajcpukpuugzzysoejf.supabase.co",
-  "TON_ANON_KEY"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkYWpjcHVrcHV1Z3p6eXNvZWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzUyMDEsImV4cCI6MjA5MjgxMTIwMX0.Yxyf3fQxlUi2epMO7y4RDVLIWhepdM9bxnSO2mjdDWg"
 );
 
 let mode = 0;
 
-// DEBUG helper
+// DEBUG
 function log(msg){
   document.getElementById("debug").innerText = msg;
 }
@@ -110,8 +113,8 @@ async function send(){
     .insert([{ content: q }]);
 
   if(error){
-    console.log(error);
     log("INSERT ERROR: " + JSON.stringify(error));
+    console.log(error);
   } else {
     log("INSERT OK");
   }
@@ -134,7 +137,7 @@ async function random(){
 
   if(!data || data.length === 0){
     document.getElementById("result").innerText = "Aucune question 😢";
-    log("NO DATA FOUND");
+    log("EMPTY DATABASE");
     return;
   }
 
@@ -159,7 +162,7 @@ async function deleteQuestion(id){
   loadMenu();
 }
 
-// ---------------- LOAD MENU ----------------
+// ---------------- LOAD ----------------
 async function loadMenu(){
 
   const { data, error } = await supabaseClient
@@ -202,8 +205,7 @@ async function loadMenu(){
   }
 
   document.getElementById("content").innerHTML = html;
-
-  log("Loaded: " + (data ? data.length : 0) + " questions");
+  log("Loaded: " + (data?.length ?? 0));
 }
 
 // INIT
