@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Roue Secrète</title>
+
   <style>
     body {
       font-family: Arial;
@@ -22,12 +23,11 @@
       cursor: pointer;
     }
 
-    /* MENU DROITE */
     #menu {
       position: fixed;
       right: 10px;
       top: 10px;
-      width: 220px;
+      width: 240px;
       background: #222;
       padding: 10px;
       border-radius: 10px;
@@ -49,7 +49,6 @@
       margin: 5px 0;
       display: flex;
       justify-content: space-between;
-      align-items: center;
       border-radius: 5px;
     }
 
@@ -57,6 +56,13 @@
       color: red;
       cursor: pointer;
       font-weight: bold;
+    }
+
+    .debug {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 10px;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -73,13 +79,12 @@
 
 <h2 id="result"></h2>
 
-<!-- MENU DROITE -->
 <div id="menu">
   <div id="spoiler" onclick="toggleSpoil()">SPOIL ?!</div>
   <div id="content"></div>
+  <div class="debug" id="debug"></div>
 </div>
 
-<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <script>
@@ -88,27 +93,48 @@ const supabaseClient = window.supabase.createClient(
   "TON_ANON_KEY"
 );
 
-let mode = 0; // 0 hidden / 1 last / 2 all
+let mode = 0;
 
-// ENVOYER
+// DEBUG helper
+function log(msg){
+  document.getElementById("debug").innerText = msg;
+}
+
+// ---------------- SEND ----------------
 async function send(){
   const q = document.getElementById("q").value;
   if(!q) return;
 
-  await supabaseClient.from("questions").insert([{ content: q }]);
+  const { error } = await supabaseClient
+    .from("questions")
+    .insert([{ content: q }]);
+
+  if(error){
+    console.log(error);
+    log("INSERT ERROR: " + JSON.stringify(error));
+  } else {
+    log("INSERT OK");
+  }
 
   document.getElementById("q").value = "";
   loadMenu();
 }
 
-// RANDOM
+// ---------------- RANDOM ----------------
 async function random(){
-  let { data, error } = await supabaseClient
+
+  const { data, error } = await supabaseClient
     .from("questions")
     .select("*");
 
-  if(error || !data || data.length === 0){
+  if(error){
+    log("SELECT ERROR: " + JSON.stringify(error));
+    return;
+  }
+
+  if(!data || data.length === 0){
     document.getElementById("result").innerText = "Aucune question 😢";
+    log("NO DATA FOUND");
     return;
   }
 
@@ -116,40 +142,42 @@ async function random(){
   document.getElementById("result").innerText = r.content;
 }
 
-// TOGGLE SPOIL
+// ---------------- SPOIL ----------------
 function toggleSpoil(){
   mode++;
   if(mode > 2) mode = 0;
   loadMenu();
 }
 
-// DELETE
+// ---------------- DELETE ----------------
 async function deleteQuestion(id){
-  await supabaseClient.from("questions").delete().eq("id", id);
+  await supabaseClient
+    .from("questions")
+    .delete()
+    .eq("id", id);
+
   loadMenu();
 }
 
-// CHARGER MENU
+// ---------------- LOAD MENU ----------------
 async function loadMenu(){
 
-  let { data, error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("questions")
     .select("*")
     .order("id", { ascending: true });
 
-  let html = "";
-
   if(error){
-    document.getElementById("content").innerHTML = "Erreur chargement";
+    log("LOAD ERROR: " + JSON.stringify(error));
     return;
   }
 
-  // MODE 0
+  let html = "";
+
   if(mode === 0){
     html = "<p style='text-align:center'>🔒 SPOIL ?!</p>";
   }
 
-  // MODE 1 (dernier)
   if(mode === 1){
     const last = data[data.length - 1];
     if(last){
@@ -159,12 +187,9 @@ async function loadMenu(){
           <span class="delete" onclick="deleteQuestion(${last.id})">❌</span>
         </div>
       `;
-    } else {
-      html = "<p>Aucune question</p>";
     }
   }
 
-  // MODE 2 (tout)
   if(mode === 2){
     data.forEach(q => {
       html += `
@@ -177,9 +202,11 @@ async function loadMenu(){
   }
 
   document.getElementById("content").innerHTML = html;
+
+  log("Loaded: " + (data ? data.length : 0) + " questions");
 }
 
-// AUTO CHARGEMENT
+// INIT
 window.onload = loadMenu;
 
 </script>
